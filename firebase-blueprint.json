@@ -1,0 +1,88 @@
+{
+  "entities": {
+    "Employee": {
+      "title": "Employee",
+      "description": "Employee profile and salary details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Barcode ID" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "designation": { "type": "string" },
+        "department": { "type": "string" },
+        "baseSalary": { "type": "number" },
+        "hourlyOvertimeRate": { "type": "number" },
+        "allowedLeaves": { "type": "number" },
+        "perLeaveDeduction": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "baseSalary", "status"]
+    },
+    "Attendance": {
+      "title": "Attendance",
+      "description": "Daily attendance logs",
+      "type": "object",
+      "properties": {
+        "employeeId": { "type": "string" },
+        "employeeName": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "checkIn": { "type": "string", "format": "date-time" },
+        "checkOut": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["present", "absent", "late"] }
+      },
+      "required": ["employeeId", "date", "checkIn"]
+    },
+    "Leave": {
+      "title": "Leave",
+      "description": "Employee leave records",
+      "type": "object",
+      "properties": {
+        "employeeId": { "type": "string" },
+        "employeeName": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "type": { "type": "string", "enum": ["sick", "casual", "unpaid"] },
+        "reason": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["employeeId", "date", "type"]
+    },
+    "Payroll": {
+      "title": "Payroll",
+      "description": "Monthly payroll statements",
+      "type": "object",
+      "properties": {
+        "employeeId": { "type": "string" },
+        "employeeName": { "type": "string" },
+        "month": { "type": "string", "description": "YYYY-MM" },
+        "baseSalary": { "type": "number" },
+        "overtimeHours": { "type": "number" },
+        "overtimePay": { "type": "number" },
+        "extraLeaves": { "type": "number" },
+        "deductions": { "type": "number" },
+        "netSalary": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "paid"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["employeeId", "month", "netSalary", "status"]
+    }
+  },
+  "firestore": {
+    "/employees/{employeeId}": {
+      "schema": "Employee",
+      "description": "Collection of employee profiles"
+    },
+    "/attendance/{attendanceId}": {
+      "schema": "Attendance",
+      "description": "Daily attendance records"
+    },
+    "/leaves/{leaveId}": {
+      "schema": "Leave",
+      "description": "Leave records"
+    },
+    "/payroll/{payrollId}": {
+      "schema": "Payroll",
+      "description": "Monthly payroll statements"
+    }
+  }
+}

@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: employees
+    // Fields: id, name, email, designation, department, baseSalary, hourlyOvertimeRate, allowedLeaves, perLeaveDeduction, status, createdAt
+    //
+    // Collection: attendance
+    // Fields: employeeId, employeeName, date, checkIn, checkOut, status
+    //
+    // Collection: leaves
+    // Fields: employeeId, employeeName, date, type, reason, createdAt
+    //
+    // Collection: payroll
+    // Fields: employeeId, employeeName, month, baseSalary, overtimeHours, overtimePay, extraLeaves, deductions, netSalary, status, createdAt
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "1.absham.tahir.1@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidString(val, min, max) {
+      return val is string && val.size() >= min && val.size() <= max;
+    }
+
+    // Rules for collections
+    // NOTE: Allowing unauthenticated access because user requested removal of sign-in logic.
+    match /employees/{employeeId} {
+      allow read, write: if true;
+    }
+
+    match /attendance/{attendanceId} {
+      allow read, write: if true;
+    }
+
+    match /leaves/{leaveId} {
+      allow read, write: if true;
+    }
+
+    match /payroll/{payrollId} {
+      allow read, write: if true;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
