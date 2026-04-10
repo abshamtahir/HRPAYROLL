@@ -179,10 +179,6 @@ export default function PayrollManagement({ isDemo }: { isDemo?: boolean }) {
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete ${employee.name}? This will not delete their attendance or payroll records.`)) {
-      return;
-    }
-
     try {
       await deleteDoc(doc(db, 'employees', employee.firestoreId));
       toast.success("Employee deleted successfully");
@@ -195,7 +191,7 @@ export default function PayrollManagement({ isDemo }: { isDemo?: boolean }) {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold tracking-tight">Management</h2>
-        <AddEmployeeDialog />
+        <AddEmployeeDialog employees={employees} />
       </div>
 
       <Tabs defaultValue="employees">
@@ -304,7 +300,7 @@ export default function PayrollManagement({ isDemo }: { isDemo?: boolean }) {
   );
 }
 
-function AddEmployeeDialog() {
+function AddEmployeeDialog({ employees }: { employees: Employee[] }) {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     id: '',
@@ -323,6 +319,14 @@ function AddEmployeeDialog() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check for duplicate Barcode ID
+    const duplicate = employees.find(emp => emp.id.toLowerCase() === formData.id.toLowerCase());
+    if (duplicate) {
+      toast.error(`Employee with ID ${formData.id} already exists (${duplicate.name})`);
+      return;
+    }
+
     try {
       await addDoc(collection(db, 'employees'), {
         ...formData,
@@ -565,6 +569,13 @@ function LeaveManagement({ isDemo, employees }: { isDemo?: boolean, employees: E
       return;
     }
 
+    // Check if leave already exists for this employee on this date
+    const existingLeave = leaves.find(l => l.employeeId === formData.employeeId && l.date === formData.date);
+    if (existingLeave) {
+      toast.error(`Leave already recorded for ${emp.name} on ${formData.date}`);
+      return;
+    }
+
     try {
       await addDoc(collection(db, 'leaves'), {
         ...formData,
@@ -581,10 +592,6 @@ function LeaveManagement({ isDemo, employees }: { isDemo?: boolean, employees: E
   const handleDeleteLeave = async (leaveId: string) => {
     if (isDemo) {
       toast.error("Cannot delete demo data");
-      return;
-    }
-
-    if (!confirm("Are you sure you want to delete this leave record?")) {
       return;
     }
 
@@ -727,10 +734,6 @@ function PayrollList({ isDemo }: { isDemo?: boolean }) {
   const handleDeletePayroll = async (payrollId: string) => {
     if (isDemo) {
       toast.error("Cannot delete demo data");
-      return;
-    }
-
-    if (!confirm("Are you sure you want to delete this payroll record?")) {
       return;
     }
 

@@ -243,10 +243,6 @@ export default function AttendanceScanner({ isDemo }: { isDemo?: boolean }) {
       return;
     }
 
-    if (!confirm("Are you sure you want to delete this attendance record?")) {
-      return;
-    }
-
     try {
       await deleteDoc(doc(db, 'attendance', logId));
       toast.success("Attendance record deleted");
