@@ -18,8 +18,12 @@ import {
   Clock,
   Settings,
   AlertCircle,
-  Play
+  Play,
+  Lock
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 import { 
   BarChart, 
   Bar, 
@@ -34,6 +38,7 @@ import {
 
 export default function App() {
   const [isDemo, setIsDemo] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [stats, setStats] = useState({
     totalEmployees: 0,
@@ -72,6 +77,10 @@ export default function App() {
       setStats({ totalEmployees: 3, presentToday: 2, totalPayroll: 13500 });
     }
   }, [isDemo]);
+
+  if (!isAuthenticated && !isDemo) {
+    return <LoginScreen onLogin={() => setIsAuthenticated(true)} onDemo={() => setIsDemo(true)} />;
+  }
 
   if (!isFirebaseConfigured && !isDemo) {
     return (
@@ -155,9 +164,9 @@ export default function App() {
               <p className="text-xs text-muted-foreground truncate">admin@allaprocessing.com</p>
             </div>
           </div>
-          <Button variant="ghost" className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setIsDemo(false)}>
+          <Button variant="ghost" className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => { setIsDemo(false); setIsAuthenticated(false); }}>
             <LogOut className="w-4 h-4" />
-            {isDemo ? 'Exit Demo' : 'Reset Session'}
+            {isDemo ? 'Exit Demo' : 'Logout'}
           </Button>
         </div>
       </aside>
@@ -166,7 +175,7 @@ export default function App() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white border-b flex items-center justify-between px-8 md:hidden">
            <span className="font-bold text-xl">Alla Processing</span>
-           <Button variant="ghost" size="icon" onClick={() => setIsDemo(false)}><LogOut className="w-5 h-5" /></Button>
+           <Button variant="ghost" size="icon" onClick={() => { setIsDemo(false); setIsAuthenticated(false); }}><LogOut className="w-5 h-5" /></Button>
         </header>
 
         <div className="flex-1 overflow-y-auto p-8">
@@ -184,6 +193,66 @@ export default function App() {
           {activeTab === 'payroll' && <PayrollManagement isDemo={isDemo} />}
         </div>
       </main>
+    </div>
+  );
+}
+
+function LoginScreen({ onLogin, onDemo }: { onLogin: () => void, onDemo: () => void }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (username === 'abshamtahir' && password === 'absham1') {
+      onLogin();
+      toast.success("Login successful!");
+    } else {
+      toast.error("Invalid username or password");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-xl border-t-4 border-t-primary">
+        <CardHeader className="text-center space-y-2">
+          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+            <Lock className="w-8 h-8 text-primary" />
+          </div>
+          <CardTitle className="text-2xl font-bold tracking-tight">Alla Processing</CardTitle>
+          <CardDescription>Enter your credentials to access the portal</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input 
+                id="username" 
+                placeholder="Enter username" 
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input 
+                id="password" 
+                type="password" 
+                placeholder="Enter password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full py-6 text-lg">Login</Button>
+          </form>
+          <div className="mt-6 pt-6 border-t text-center">
+            <Button variant="ghost" onClick={onDemo} className="text-muted-foreground hover:text-primary">
+              Try Demo Mode
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

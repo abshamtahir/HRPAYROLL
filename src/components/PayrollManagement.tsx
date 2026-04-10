@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '@/src/lib/firebase';
-import { collection, onSnapshot, query, addDoc, serverTimestamp, getDocs, where, updateDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, addDoc, serverTimestamp, getDocs, where, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { Employee, Attendance, Payroll, Leave } from '@/src/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, startOfMonth, endOfMonth, differenceInHours } from 'date-fns';
 import { toast } from 'sonner';
-import { Plus, Search, Copy, Edit, Calendar, CheckCircle } from 'lucide-react';
+import { Plus, Search, Copy, Edit, Calendar, CheckCircle, Trash2 } from 'lucide-react';
 import { dataService } from '@/src/services/dataService';
 import { handleFirestoreError, OperationType } from '@/src/lib/firestore-errors';
 import { getDocFromServer } from 'firebase/firestore';
@@ -173,6 +173,24 @@ export default function PayrollManagement({ isDemo }: { isDemo?: boolean }) {
     }
   };
 
+  const handleDeleteEmployee = async (employee: any) => {
+    if (isDemo) {
+      toast.error("Cannot delete demo data");
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete ${employee.name}? This will not delete their attendance or payroll records.`)) {
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, 'employees', employee.firestoreId));
+      toast.success("Employee deleted successfully");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `employees/${employee.firestoreId}`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -256,6 +274,14 @@ export default function PayrollManagement({ isDemo }: { isDemo?: boolean }) {
                         <EditEmployeeDialog employee={emp} />
                         <Button size="sm" onClick={() => calculatePayroll(emp)}>
                           Payroll
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteEmployee(emp)}
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -552,6 +578,24 @@ function LeaveManagement({ isDemo, employees }: { isDemo?: boolean, employees: E
     }
   };
 
+  const handleDeleteLeave = async (leaveId: string) => {
+    if (isDemo) {
+      toast.error("Cannot delete demo data");
+      return;
+    }
+
+    if (!confirm("Are you sure you want to delete this leave record?")) {
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, 'leaves', leaveId));
+      toast.success("Leave record deleted");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `leaves/${leaveId}`);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -611,6 +655,7 @@ function LeaveManagement({ isDemo, employees }: { isDemo?: boolean, employees: E
               <TableHead>Date</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Reason</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -623,6 +668,16 @@ function LeaveManagement({ isDemo, employees }: { isDemo?: boolean, employees: E
                   <TableCell>{l.date}</TableCell>
                   <TableCell><Badge variant="outline">{l.type}</Badge></TableCell>
                   <TableCell className="text-sm">{l.reason || '-'}</TableCell>
+                  <TableCell className="text-right">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => handleDeleteLeave(l.id!)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -669,6 +724,24 @@ function PayrollList({ isDemo }: { isDemo?: boolean }) {
     }
   };
 
+  const handleDeletePayroll = async (payrollId: string) => {
+    if (isDemo) {
+      toast.error("Cannot delete demo data");
+      return;
+    }
+
+    if (!confirm("Are you sure you want to delete this payroll record?")) {
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, 'payroll', payrollId));
+      toast.success("Payroll record deleted");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `payroll/${payrollId}`);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -705,24 +778,34 @@ function PayrollList({ isDemo }: { isDemo?: boolean }) {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className={`gap-2 ${p.status === 'pending' ? 'text-green-600 hover:text-green-700 hover:bg-green-50' : 'text-orange-600 hover:text-orange-700 hover:bg-orange-50'}`}
-                    onClick={() => handleUpdateStatus(p.id, p.status)}
-                  >
-                    {p.status === 'pending' ? (
-                      <>
-                        <CheckCircle className="w-4 h-4" />
-                        Mark as Paid
-                      </>
-                    ) : (
-                      <>
-                        <Calendar className="w-4 h-4" />
-                        Mark as Pending
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className={`gap-2 ${p.status === 'pending' ? 'text-green-600 hover:text-green-700 hover:bg-green-50' : 'text-orange-600 hover:text-orange-700 hover:bg-orange-50'}`}
+                      onClick={() => handleUpdateStatus(p.id, p.status)}
+                    >
+                      {p.status === 'pending' ? (
+                        <>
+                          <CheckCircle className="w-4 h-4" />
+                          Mark as Paid
+                        </>
+                      ) : (
+                        <>
+                          <Calendar className="w-4 h-4" />
+                          Mark as Pending
+                        </>
+                      )}
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => handleDeletePayroll(p.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

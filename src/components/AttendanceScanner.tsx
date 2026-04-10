@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import { db, isFirebaseConfigured } from '@/src/lib/firebase';
-import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, onSnapshot, orderBy, limit, deleteDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,13 +13,13 @@ import { toast } from 'sonner';
 import { format, differenceInMinutes, parse } from 'date-fns';
 import { dataService } from '@/src/services/dataService';
 import { handleFirestoreError, OperationType } from '@/src/lib/firestore-errors';
-import { ScanBarcode, Keyboard, Fingerprint, History, Clock, LogIn, LogOut } from 'lucide-react';
+import { ScanBarcode, Keyboard, Fingerprint, History, Clock, LogIn, LogOut, Trash2 } from 'lucide-react';
 
 export default function AttendanceScanner({ isDemo }: { isDemo?: boolean }) {
   const [scanning, setScanning] = useState(false);
   const [manualId, setManualId] = useState('');
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
     if (isDemo) return;
@@ -176,26 +176,84 @@ export default function AttendanceScanner({ isDemo }: { isDemo?: boolean }) {
   };
 
   useEffect(() => {
-    if (scanning) {
-      scannerRef.current = new Html5QrcodeScanner(
-        "reader",
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        /* verbose= */ false
-      );
-      scannerRef.current.render(handleScan, (error) => {});
-    } else {
-      if (scannerRef.current) {
-        scannerRef.current.clear();
-        scannerRef.current = null;
+    const startScanner = async () => {
+      if (scanning) {
+        try {
+          // Give React a moment to render the #reader div
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          const html5QrCode = new Html5Qrcode("reader");
+          scannerRef.current = html5QrCode;
+
+          const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+          
+          await html5QrCode.start(
+            { facingMode: "environment" }, 
+            config, 
+            (decodedText) => {
+              handleScan(decodedText);
+              // Optionally stop after one scan if needed, but here we keep it running
+            },
+            (errorMessage) => {
+              // Ignore constant scanning errors
+            }
+          );
+        } catch (err) {
+          console.error("Scanner start error:", err);
+          toast.error("Could not start camera. Please ensure camera permissions are granted.");
+          setScanning(false);
+        }
+      } else {
+        if (scannerRef.current) {
+          try {
+            if (scannerRef.current.isScanning) {
+              await scannerRef.current.stop();
+            }
+            scannerRef.current.clear();
+          } catch (err) {
+            console.error("Scanner stop error:", err);
+          }
+          scannerRef.current = null;
+        }
       }
-    }
+    };
+
+    startScanner();
 
     return () => {
       if (scannerRef.current) {
-        scannerRef.current.clear();
+        const stopScanner = async () => {
+          try {
+            if (scannerRef.current?.isScanning) {
+              await scannerRef.current.stop();
+            }
+            scannerRef.current?.clear();
+          } catch (err) {
+            console.error("Cleanup error:", err);
+          }
+        };
+        stopScanner();
       }
     };
   }, [scanning]);
+
+  const handleDeleteAttendance = async (logId: string) => {
+    if (isDemo) {
+      toast.error("Cannot delete demo data");
+      return;
+    }
+
+    if (!confirm("Are you sure you want to delete this attendance record?")) {
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, 'attendance', logId));
+      toast.success("Attendance record deleted");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `attendance/${logId}`);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -291,6 +349,7 @@ export default function AttendanceScanner({ isDemo }: { isDemo?: boolean }) {
                 <TableHead>Check-In</TableHead>
                 <TableHead>Check-Out</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -322,6 +381,16 @@ export default function AttendanceScanner({ isDemo }: { isDemo?: boolean }) {
                         <Clock className="w-3 h-3" />
                         {log.status === 'late' ? `Late (${log.lateMinutes}m)` : log.checkOut ? "Shift Ended" : "On Duty"}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteAttendance(log.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
