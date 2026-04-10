@@ -1,5 +1,5 @@
 {
-  "name": "Alla Processing",
+  "name": "Aala Processing",
   "description": "A comprehensive HR and Payroll management system with barcode attendance, overtime tracking, and automated salary processing.",
   "requestFramePermissions": ["camera"]
 }

@@ -46,10 +46,17 @@ export interface Overtime {
 export interface Payroll {
   id?: string;
   employeeId: string;
+  employeeName?: string;
   month: string; // YYYY-MM
   baseSalary: number;
+  overtimeHours?: number;
   overtimePay: number;
+  extraLeaves?: number;
+  lateMinutes?: number;
+  lateDeduction?: number;
+  leaveDeduction?: number;
   deductions: number;
   netSalary: number;
   status: 'pending' | 'paid';
+  createdAt?: any;
 }

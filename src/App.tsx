@@ -165,7 +165,7 @@ export default function App() {
       <aside className="w-64 bg-white border-r hidden md:flex flex-col">
         <div className="p-6 border-bottom flex items-center gap-2">
           <Banknote className="w-6 h-6 text-primary" />
-          <span className="font-bold text-xl tracking-tight">Alla Processing</span>
+          <span className="font-bold text-xl tracking-tight">Aala Processing</span>
         </div>
         
         <nav className="flex-1 p-4 space-y-2">
@@ -196,7 +196,7 @@ export default function App() {
             </div>
             <div className="flex-1 overflow-hidden">
               <p className="text-sm font-medium truncate">Admin User</p>
-              <p className="text-xs text-muted-foreground truncate">admin@allaprocessing.com</p>
+              <p className="text-xs text-muted-foreground truncate">admin@aalaprocessing.com</p>
             </div>
           </div>
           <Button variant="ghost" className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => { setIsDemo(false); setIsAuthenticated(false); }}>
@@ -209,7 +209,7 @@ export default function App() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white border-b flex items-center justify-between px-8 md:hidden">
-           <span className="font-bold text-xl">Alla Processing</span>
+           <span className="font-bold text-xl">Aala Processing</span>
            <Button variant="ghost" size="icon" onClick={() => { setIsDemo(false); setIsAuthenticated(false); }}><LogOut className="w-5 h-5" /></Button>
         </header>
 
@@ -260,7 +260,7 @@ function LoginScreen({ onLogin, onDemo }: { onLogin: () => void, onDemo: () => v
           <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
             <Lock className="w-8 h-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">Alla Processing</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight">Aala Processing</CardTitle>
           <CardDescription>Enter your credentials to access the portal</CardDescription>
         </CardHeader>
         <CardContent>

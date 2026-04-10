@@ -584,6 +584,12 @@ function LeaveManagement({ isDemo, employees }: { isDemo?: boolean, employees: E
       });
       toast.success("Leave recorded successfully");
       setOpen(false);
+      setFormData({
+        employeeId: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+        type: 'unpaid' as any,
+        reason: ''
+      });
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'leaves');
     }
@@ -758,7 +764,8 @@ function PayrollList({ isDemo }: { isDemo?: boolean }) {
               <TableHead>Month</TableHead>
               <TableHead>OT Hours</TableHead>
               <TableHead>OT Pay (PKR)</TableHead>
-              <TableHead>Deductions (Leaves)</TableHead>
+              <TableHead>Late Deduction</TableHead>
+              <TableHead>Leave Deduction</TableHead>
               <TableHead>Net Salary (PKR)</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -772,7 +779,10 @@ function PayrollList({ isDemo }: { isDemo?: boolean }) {
                 <TableCell>{p.overtimeHours}h</TableCell>
                 <TableCell>Rs. {p.overtimePay}</TableCell>
                 <TableCell className="text-destructive">
-                  {p.extraLeaves > 0 ? `Rs. ${p.deductions} (${p.extraLeaves} extra)` : '-'}
+                  {p.lateDeduction > 0 ? `Rs. ${p.lateDeduction} (${p.lateMinutes}m)` : '-'}
+                </TableCell>
+                <TableCell className="text-destructive">
+                  {p.leaveDeduction > 0 ? `Rs. ${p.leaveDeduction} (${p.extraLeaves} extra)` : '-'}
                 </TableCell>
                 <TableCell className="font-bold">Rs. {p.netSalary}</TableCell>
                 <TableCell>

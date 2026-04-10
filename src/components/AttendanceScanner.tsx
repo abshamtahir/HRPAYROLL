@@ -56,6 +56,63 @@ export default function AttendanceScanner({ isDemo }: { isDemo?: boolean }) {
     }, 8000);
 
     try {
+      let employeeData: any = null;
+
+      if (isDemo) {
+        const employees = await dataService.getEmployees(true);
+        employeeData = employees.find(e => e.id === cleanId);
+      } else {
+        if (!isFirebaseConfigured) {
+          clearTimeout(timeoutId);
+          toast.dismiss(loadingToast);
+          toast.error("Firebase is not configured. Please use Demo Mode or set up Firebase.");
+          return;
+        }
+
+        // Real Firebase logic
+        const employeesRef = collection(db, 'employees');
+        const q = query(employeesRef, where('id', '==', cleanId), where('status', '==', 'active'));
+        let querySnapshot;
+        try {
+          querySnapshot = await getDocs(q);
+        } catch (error) {
+          handleFirestoreError(error, OperationType.LIST, 'employees');
+          return;
+        }
+
+        if (!querySnapshot.empty) {
+          employeeData = querySnapshot.docs[0].data();
+        }
+      }
+
+      if (!employeeData) {
+        clearTimeout(timeoutId);
+        toast.dismiss(loadingToast);
+        toast.error(`Employee with ID ${cleanId} not found or inactive.`);
+        return;
+      }
+
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const now = new Date();
+
+      // Shift Timing Validation (Strict)
+      if (employeeData.shiftStart && employeeData.shiftEnd) {
+        const shiftStart = parse(employeeData.shiftStart, 'HH:mm', now);
+        const shiftEnd = parse(employeeData.shiftEnd, 'HH:mm', now);
+        
+        // Allow check-out up to 6 hours after shift end (for overtime)
+        const lateBuffer = new Date(shiftEnd.getTime() + 360 * 60000);
+
+        // Strict: Must be after shiftStart to check in
+        // And before lateBuffer to check out
+        if (now < shiftStart || now > lateBuffer) {
+          clearTimeout(timeoutId);
+          toast.dismiss(loadingToast);
+          toast.error(`Attendance not allowed outside shift timings (${employeeData.shiftStart} - ${employeeData.shiftEnd})`);
+          return;
+        }
+      }
+
       if (isDemo) {
         const result = await dataService.processAttendance(true, cleanId);
         clearTimeout(timeoutId);
@@ -65,36 +122,6 @@ export default function AttendanceScanner({ isDemo }: { isDemo?: boolean }) {
         else if (result?.type === 'already-done') toast.info(`${result.name} already checked out.`);
         return;
       }
-
-      if (!isFirebaseConfigured) {
-        clearTimeout(timeoutId);
-        toast.dismiss(loadingToast);
-        toast.error("Firebase is not configured. Please use Demo Mode or set up Firebase.");
-        return;
-      }
-
-      // Real Firebase logic
-      const employeesRef = collection(db, 'employees');
-      const q = query(employeesRef, where('id', '==', cleanId), where('status', '==', 'active'));
-      let querySnapshot;
-      try {
-        querySnapshot = await getDocs(q);
-      } catch (error) {
-        handleFirestoreError(error, OperationType.LIST, 'employees');
-        return;
-      }
-
-      if (querySnapshot.empty) {
-        clearTimeout(timeoutId);
-        toast.dismiss(loadingToast);
-        toast.error(`Employee with ID ${cleanId} not found or inactive.`);
-        return;
-      }
-
-      const employeeDoc = querySnapshot.docs[0];
-      const employeeData = employeeDoc.data();
-      const today = format(new Date(), 'yyyy-MM-dd');
-      const now = new Date();
 
       const attendanceRef = collection(db, 'attendance');
       const attQ = query(attendanceRef, where('employeeId', '==', cleanId), where('date', '==', today));
