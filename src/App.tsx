@@ -46,6 +46,11 @@ export default function App() {
     totalPayroll: 0,
     pendingPayrollsCount: 0
   });
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [chartColors, setChartColors] = useState({
+    payroll: '#3b82f6',
+    overtime: '#f97316'
+  });
 
   useEffect(() => {
     if (isFirebaseConfigured) {
@@ -61,20 +66,50 @@ export default function App() {
         setStats(prev => ({ ...prev, presentToday: snap.size }));
       });
 
-      const qPayroll = query(collection(db, 'payroll'), where('month', '==', currentMonth));
-      const unsubPayroll = onSnapshot(qPayroll, (snap) => {
-        const total = snap.docs.reduce((acc, doc) => acc + (doc.data().netSalary || 0), 0);
-        const pending = snap.docs.filter(doc => doc.data().status === 'pending').length;
+      const qPayrollAll = query(collection(db, 'payroll'));
+      const unsubPayrollAll = onSnapshot(qPayrollAll, (snap) => {
+        // Calculate current month stats
+        const currentMonthPayrolls = snap.docs.filter(doc => doc.data().month === currentMonth);
+        const total = currentMonthPayrolls.reduce((acc, doc) => acc + (doc.data().netSalary || 0), 0);
+        const pending = currentMonthPayrolls.filter(doc => doc.data().status === 'pending').length;
         setStats(prev => ({ ...prev, totalPayroll: total, pendingPayrollsCount: pending }));
+
+        // Prepare chart data (last 6 months)
+        const months = [];
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date();
+          d.setMonth(d.getMonth() - i);
+          months.push(format(d, 'yyyy-MM'));
+        }
+
+        const trendData = months.map(m => {
+          const monthPayrolls = snap.docs.filter(doc => doc.data().month === m);
+          const totalSalary = monthPayrolls.reduce((acc, doc) => acc + (doc.data().netSalary || 0), 0);
+          const totalOT = monthPayrolls.reduce((acc, doc) => acc + (doc.data().overtimePay || 0), 0);
+          return {
+            name: format(new Date(m + '-01'), 'MMM'),
+            payroll: totalSalary,
+            overtime: totalOT
+          };
+        });
+        setChartData(trendData);
       });
 
       return () => {
         unsubEmployees();
         unsubAttendance();
-        unsubPayroll();
+        unsubPayrollAll();
       };
     } else if (isDemo) {
-      setStats({ totalEmployees: 3, presentToday: 2, totalPayroll: 13500 });
+      setStats({ totalEmployees: 3, presentToday: 2, totalPayroll: 13500, pendingPayrollsCount: 1 });
+      setChartData([
+        { name: 'Jan', payroll: 4000, overtime: 400 },
+        { name: 'Feb', payroll: 3000, overtime: 300 },
+        { name: 'Mar', payroll: 2000, overtime: 200 },
+        { name: 'Apr', payroll: 2780, overtime: 278 },
+        { name: 'May', payroll: 1890, overtime: 189 },
+        { name: 'Jun', payroll: 2390, overtime: 239 },
+      ]);
     }
   }, [isDemo]);
 
@@ -188,7 +223,14 @@ export default function App() {
               <Button size="sm" variant="outline" onClick={() => setIsDemo(false)}>Switch to Real Mode</Button>
             </div>
           )}
-          {activeTab === 'dashboard' && <Dashboard stats={stats} />}
+          {activeTab === 'dashboard' && (
+            <Dashboard 
+              stats={stats} 
+              chartData={chartData} 
+              colors={chartColors} 
+              onColorChange={(key: string, color: string) => setChartColors(prev => ({ ...prev, [key]: color }))} 
+            />
+          )}
           {activeTab === 'attendance' && <AttendanceScanner isDemo={isDemo} />}
           {activeTab === 'payroll' && <PayrollManagement isDemo={isDemo} />}
         </div>
@@ -273,22 +315,33 @@ function NavItem({ icon, label, active, onClick }: any) {
   );
 }
 
-function Dashboard({ stats }: any) {
-  const data = [
-    { name: 'Jan', payroll: 4000 },
-    { name: 'Feb', payroll: 3000 },
-    { name: 'Mar', payroll: 2000 },
-    { name: 'Apr', payroll: 2780 },
-    { name: 'May', payroll: 1890 },
-    { name: 'Jun', payroll: 2390 },
-  ];
-
+function Dashboard({ stats, chartData, colors, onColorChange }: any) {
   return (
     <div className="space-y-8">
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Welcome Back</h1>
           <p className="text-muted-foreground">Here's what's happening with your workforce today.</p>
+        </div>
+        <div className="flex gap-4 items-center bg-white p-3 rounded-lg border shadow-sm">
+          <div className="flex items-center gap-2">
+            <Label className="text-xs">Payroll Color</Label>
+            <input 
+              type="color" 
+              value={colors.payroll} 
+              onChange={(e) => onColorChange('payroll', e.target.value)}
+              className="w-8 h-8 rounded cursor-pointer border-none p-0 bg-transparent"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs">OT Color</Label>
+            <input 
+              type="color" 
+              value={colors.overtime} 
+              onChange={(e) => onColorChange('overtime', e.target.value)}
+              className="w-8 h-8 rounded cursor-pointer border-none p-0 bg-transparent"
+            />
+          </div>
         </div>
       </div>
 
@@ -309,7 +362,7 @@ function Dashboard({ stats }: any) {
         <StatCard 
           title="Monthly Payroll" 
           value={`Rs. ${stats.totalPayroll.toLocaleString()}`} 
-          icon={<TrendingUp className="text-orange-500" />} 
+          icon={<Banknote className="text-orange-500" />} 
           trend={stats.totalPayroll > 0 && stats.pendingPayrollsCount === 0 ? "All Paid" : stats.totalPayroll > 0 ? `${stats.pendingPayrollsCount} Pending` : "No payroll generated"} 
           trendColor={stats.totalPayroll > 0 && stats.pendingPayrollsCount === 0 ? "text-green-600 bg-green-50" : "text-orange-600 bg-orange-50"}
         />
@@ -318,16 +371,16 @@ function Dashboard({ stats }: any) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold">Payroll Trends</CardTitle>
+            <CardTitle className="text-lg font-semibold">Payroll Trends (Last 6 Months)</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data}>
+              <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} />
                 <Tooltip cursor={{fill: '#f1f5f9'}} />
-                <Bar dataKey="payroll" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="payroll" fill={colors.payroll} radius={[4, 4, 0, 0]} name="Total Salary" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -339,12 +392,12 @@ function Dashboard({ stats }: any) {
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data}>
+              <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} />
                 <Tooltip />
-                <Line type="monotone" dataKey="payroll" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="overtime" stroke={colors.overtime} strokeWidth={3} dot={{ r: 4, fill: colors.overtime }} activeDot={{ r: 6 }} name="OT Pay" />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
