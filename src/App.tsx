@@ -4,6 +4,7 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { format } from 'date-fns';
 import AttendanceScanner from './components/AttendanceScanner';
 import PayrollManagement from './components/PayrollManagement';
+import Reports from './components/Reports';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Toaster } from 'sonner';
@@ -19,7 +20,8 @@ import {
   Settings,
   AlertCircle,
   Play,
-  Lock
+  Lock,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -187,6 +189,12 @@ export default function App() {
             active={activeTab === 'payroll'} 
             onClick={() => setActiveTab('payroll')} 
           />
+          <NavItem 
+            icon={<FileSpreadsheet />} 
+            label="Reports" 
+            active={activeTab === 'reports'} 
+            onClick={() => setActiveTab('reports')} 
+          />
         </nav>
 
         <div className="p-4 border-t space-y-4">
@@ -233,6 +241,7 @@ export default function App() {
           )}
           {activeTab === 'attendance' && <AttendanceScanner isDemo={isDemo} />}
           {activeTab === 'payroll' && <PayrollManagement isDemo={isDemo} />}
+          {activeTab === 'reports' && <Reports isDemo={isDemo} />}
         </div>
       </main>
     </div>
