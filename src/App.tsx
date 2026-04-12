@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import AttendanceScanner from './components/AttendanceScanner';
 import PayrollManagement from './components/PayrollManagement';
 import Reports from './components/Reports';
+import SettingsView from './components/Settings';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Toaster } from 'sonner';
@@ -53,6 +54,26 @@ export default function App() {
     payroll: '#3b82f6',
     overtime: '#f97316'
   });
+
+  useEffect(() => {
+    // Load custom theme if exists
+    const savedTheme = localStorage.getItem('custom-theme');
+    if (savedTheme) {
+      try {
+        const t = JSON.parse(savedTheme);
+        const root = document.documentElement;
+        root.style.setProperty('--primary', t.primary);
+        root.style.setProperty('--primary-foreground', t.primaryForeground);
+        root.style.setProperty('--background', t.background);
+        root.style.setProperty('--card', t.card);
+        root.style.setProperty('--foreground', t.text);
+        root.style.setProperty('--sidebar', t.sidebar);
+        root.style.setProperty('--ring', t.primary);
+      } catch (e) {
+        console.error("Failed to load theme", e);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (isFirebaseConfigured) {
@@ -121,11 +142,11 @@ export default function App() {
 
   if (!isFirebaseConfigured && !isDemo) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-lg shadow-xl border-t-4 border-t-orange-500">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-lg shadow-xl border-t-4 border-t-primary">
           <CardHeader className="text-center space-y-2">
-            <div className="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
-              <Settings className="w-8 h-8 text-orange-600" />
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+              <Settings className="w-8 h-8 text-primary" />
             </div>
             <CardTitle className="text-2xl font-bold tracking-tight">System Setup Required</CardTitle>
             <CardDescription>
@@ -160,11 +181,11 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-background flex">
       <Toaster position="top-right" />
       
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r hidden md:flex flex-col">
+      <aside className="w-64 bg-card border-r hidden md:flex flex-col">
         <div className="p-6 border-bottom flex items-center gap-2">
           <Banknote className="w-6 h-6 text-primary" />
           <span className="font-bold text-xl tracking-tight">Aala Processing</span>
@@ -195,6 +216,12 @@ export default function App() {
             active={activeTab === 'reports'} 
             onClick={() => setActiveTab('reports')} 
           />
+          <NavItem 
+            icon={<Settings />} 
+            label="Settings" 
+            active={activeTab === 'settings'} 
+            onClick={() => setActiveTab('settings')} 
+          />
         </nav>
 
         <div className="p-4 border-t space-y-4">
@@ -216,15 +243,15 @@ export default function App() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-white border-b flex items-center justify-between px-8 md:hidden">
+        <header className="h-16 bg-card border-b flex items-center justify-between px-8 md:hidden">
            <span className="font-bold text-xl">Aala Processing</span>
            <Button variant="ghost" size="icon" onClick={() => { setIsDemo(false); setIsAuthenticated(false); }}><LogOut className="w-5 h-5" /></Button>
         </header>
 
         <div className="flex-1 overflow-y-auto p-8">
           {isDemo && (
-            <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
-              <div className="flex items-center gap-2 text-blue-800 text-sm font-medium">
+            <div className="mb-6 p-3 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-2 text-primary text-sm font-medium">
                 <Play className="w-4 h-4" />
                 Demo Mode Active: Using sample data.
               </div>
@@ -242,6 +269,7 @@ export default function App() {
           {activeTab === 'attendance' && <AttendanceScanner isDemo={isDemo} />}
           {activeTab === 'payroll' && <PayrollManagement isDemo={isDemo} />}
           {activeTab === 'reports' && <Reports isDemo={isDemo} />}
+          {activeTab === 'settings' && <SettingsView />}
         </div>
       </main>
     </div>
@@ -263,7 +291,7 @@ function LoginScreen({ onLogin, onDemo }: { onLogin: () => void, onDemo: () => v
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-xl border-t-4 border-t-primary">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
